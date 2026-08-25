@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.spec
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Sensitive / Financial Data - NEVER COMMIT REAL DATA
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.duckdb
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.env
+
+# OS / Editor specific
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
