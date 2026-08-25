@@ -1,0 +1,151 @@
+name: Build and Release Multiplatform Apps
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ created, published ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: 🪟 Build Windows .EXE
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: |
+          pytest test_engine.py -v
+
+      - name: Build Windows .EXE with PyInstaller
+        run: |
+          python build_exe.py
+
+      - name: Upload Windows Executable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-Windows-EXE
+          path: dist/PichinchaExcelCleaner.exe
+
+  build-android:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Build Android APK
+        working-directory: mobile
+        run: flutter build apk --release
+
+      - name: Copy and rename APK
+        run: |
+          mkdir -p mobile_dist
+          cp mobile/build/app/outputs/flutter-apk/app-release.apk mobile_dist/PichinchaExcelCleaner-Android.apk
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-Android-APK
+          path: mobile_dist/PichinchaExcelCleaner-Android.apk
+
+  build-ios:
+    name: 🍎 Build iOS App Bundle
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Build iOS (No Codesign)
+        working-directory: mobile
+        run: flutter build ios --release --no-codesign
+
+      - name: Package iOS Release Bundle
+        run: |
+          mkdir -p mobile_dist/Payload
+          cp -r mobile/build/ios/iphoneos/Runner.app mobile_dist/Payload/
+          cd mobile_dist
+          zip -r PichinchaExcelCleaner-iOS.zip Payload
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-iOS-Bundle
+          path: mobile_dist/PichinchaExcelCleaner-iOS.zip
+
+  publish-release-assets:
+    name: 🚀 Publish Assets to GitHub Release
+    needs: [build-windows, build-android, build-ios]
+    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-Windows-EXE
+          path: release_assets
+
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-Android-APK
+          path: release_assets
+
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-iOS-Bundle
+          path: release_assets
+
+      - name: Upload Assets to Latest Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.0.0 release_assets/* --clobber || true

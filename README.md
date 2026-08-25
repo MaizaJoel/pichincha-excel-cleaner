@@ -1,5 +1,7 @@
 # 📊 Banco Pichincha - Excel Cleaner & Formatter (100% Offline)
 
+[🇺🇸 English](README.md) | [🇪🇸 Español](README_ES.md)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen.svg)]()
 [![Offline](https://img.shields.io/badge/Security-100%25%20Offline%20%26%20Local-success.svg)]()
