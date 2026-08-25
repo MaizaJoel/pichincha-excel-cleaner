@@ -159,7 +159,7 @@ jobs:
         run: |
           mkdir -p macos_dist
           cd mobile/build/macos/Build/Products/Release
-          zip -r ../../../../../macos_dist/PichinchaExcelCleaner-macOS.zip PichinchaExcelCleaner.app
+          zip -r ../../../../../macos_dist/PichinchaExcelCleaner-macOS.zip *.app
 
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
@@ -170,7 +170,7 @@ jobs:
   publish-release-assets:
     name: 🚀 Publish All Assets to GitHub Release
     needs: [build-windows, build-android, build-ios, build-macos]
-    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -200,8 +200,13 @@ jobs:
           name: PichinchaExcelCleaner-macOS-Bundle
           path: release_assets
 
-      - name: Upload All Assets to Latest Release
+      - name: List downloaded release assets
+        run: ls -la release_assets/
+
+      - name: Upload All Assets to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          files: release_assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload v1.0.0 release_assets/* --clobber || true
