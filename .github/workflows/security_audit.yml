@@ -1,0 +1,41 @@
+name: Security Audit & Offline Integrity CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  security-audit:
+    name: 🛡️ Offline Integrity & Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies & security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest bandit
+
+      - name: 🧪 Run Functional Unit Tests
+        run: |
+          pytest test_engine.py -v
+
+      - name: 🔒 Run AST Offline Integrity Verification
+        run: |
+          pytest test_offline_integrity.py -v
+
+      - name: 🛡️ Run Bandit Static Security Scanner
+        run: |
+          bandit -r engine.py app_gui.py -ll
