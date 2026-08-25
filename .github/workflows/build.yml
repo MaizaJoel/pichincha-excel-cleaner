@@ -32,6 +32,7 @@ jobs:
       - name: Run Tests
         run: |
           pytest test_engine.py -v
+          pytest test_offline_integrity.py -v
 
       - name: Build Windows .EXE with PyInstaller
         run: |
@@ -63,9 +64,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Flutter dependencies
+      - name: Generate Android platform files and install deps
         working-directory: mobile
-        run: flutter pub get
+        run: |
+          flutter create --platforms=android --org=com.maizajoel .
+          flutter pub get
 
       - name: Build Android APK
         working-directory: mobile
@@ -96,9 +99,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Flutter dependencies
+      - name: Generate iOS platform files and install deps
         working-directory: mobile
-        run: flutter pub get
+        run: |
+          flutter create --platforms=ios --org=com.maizajoel .
+          flutter pub get
 
       - name: Build iOS (No Codesign)
         working-directory: mobile
