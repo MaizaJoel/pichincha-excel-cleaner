@@ -64,10 +64,22 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Android platform files and install deps
+      - name: Generate Android platform files and configure Gradle
         working-directory: mobile
         run: |
           flutter create --platforms=android --org=com.maizajoel .
+          # Fix duplicate Kotlin stdlib conflict in Gradle
+          cat << 'EOF' >> android/app/build.gradle
+          configurations.all {
+              resolutionStrategy {
+                  eachDependency { details ->
+                      if (details.requested.group == 'org.jetbrains.kotlin') {
+                          details.useVersion '1.8.22'
+                      }
+                  }
+              }
+          }
+          EOF
           flutter pub get
 
       - name: Build Android APK
@@ -122,9 +134,42 @@ jobs:
           name: PichinchaExcelCleaner-iOS-Bundle
           path: mobile_dist/PichinchaExcelCleaner-iOS.zip
 
+  build-macos:
+    name: 💻 Build macOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Generate macOS platform files and build
+        working-directory: mobile
+        run: |
+          flutter create --platforms=macos --org=com.maizajoel .
+          flutter pub get
+          flutter build macos --release
+
+      - name: Package macOS App
+        run: |
+          mkdir -p macos_dist
+          cd mobile/build/macos/Build/Products/Release
+          zip -r ../../../../../macos_dist/PichinchaExcelCleaner-macOS.zip PichinchaExcelCleaner.app
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-macOS-Bundle
+          path: macos_dist/PichinchaExcelCleaner-macOS.zip
+
   publish-release-assets:
-    name: 🚀 Publish Assets to GitHub Release
-    needs: [build-windows, build-android, build-ios]
+    name: 🚀 Publish All Assets to GitHub Release
+    needs: [build-windows, build-android, build-ios, build-macos]
     if: github.event_name == 'release' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -149,7 +194,13 @@ jobs:
           name: PichinchaExcelCleaner-iOS-Bundle
           path: release_assets
 
-      - name: Upload Assets to Latest Release
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PichinchaExcelCleaner-macOS-Bundle
+          path: release_assets
+
+      - name: Upload All Assets to Latest Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
