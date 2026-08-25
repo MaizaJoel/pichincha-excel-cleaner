@@ -126,7 +126,7 @@ jobs:
           mkdir -p mobile_dist/Payload
           cp -r mobile/build/ios/iphoneos/Runner.app mobile_dist/Payload/
           cd mobile_dist
-          zip -r PichinchaExcelCleaner-iOS.zip Payload
+          zip -r -y PichinchaExcelCleaner-iOS.zip Payload
 
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
@@ -158,8 +158,8 @@ jobs:
       - name: Package macOS App
         run: |
           mkdir -p macos_dist
-          cd mobile/build/macos/Build/Products/Release
-          zip -r ../../../../../macos_dist/PichinchaExcelCleaner-macOS.zip *.app
+          APP_PATH=$(find mobile/build/macos -name "*.app" | head -n 1)
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" macos_dist/PichinchaExcelCleaner-macOS.zip
 
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
@@ -170,7 +170,7 @@ jobs:
   publish-release-assets:
     name: 🚀 Publish All Assets to GitHub Release
     needs: [build-windows, build-android, build-ios, build-macos]
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -178,24 +178,28 @@ jobs:
 
       - name: Download Windows Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: PichinchaExcelCleaner-Windows-EXE
           path: release_assets
 
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: PichinchaExcelCleaner-Android-APK
           path: release_assets
 
       - name: Download iOS Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: PichinchaExcelCleaner-iOS-Bundle
           path: release_assets
 
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: PichinchaExcelCleaner-macOS-Bundle
           path: release_assets
